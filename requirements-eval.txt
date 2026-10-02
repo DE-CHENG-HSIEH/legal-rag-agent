@@ -1,0 +1,4 @@
+-r requirements-runtime.txt
+
+# LangSmith is optional: the Streamlit Agent does not require an account to run.
+langsmith==0.14.0

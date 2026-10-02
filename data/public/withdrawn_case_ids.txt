@@ -1,0 +1,2 @@
+# One internal case_id per line. Entries are omitted from every public rebuild.
+# Keep comments beginning with #; do not place personal data in this file.

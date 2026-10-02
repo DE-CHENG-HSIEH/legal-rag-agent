@@ -1,0 +1,33 @@
+# 正式 SFT 統一使用 TAIDE Llama 3.1；tokenizer 與權重都從此來源載入。
+# TAIDE 擴充過詞彙表，不可混用其他 Llama 的 tokenizer 或既有 adapter。
+base_model_name_or_path: taide/Llama-3.1-TAIDE-LX-8B-Chat
+trust_remote_code: false
+use_fast_tokenizer: true
+local_files_only: false
+
+# 此為 gated 模型：先到模型頁同意條款並取得存取權，再使用該帳號的 token。
+# token 可放在專案根目錄 .env：HF_TOKEN=hf_xxx；也可沿用 hf auth login 的登入快取。
+# 有 token 不代表已取得此模型的權限，也不代表能避免 Hub／CDN 下載逾時。
+token_env_var: HF_TOKEN
+
+# 單機訓練由 Trainer 管理裝置搬移。保持 null，避免誤用主要供推論使用的自動分派。
+device_map: null
+
+# TAIDE 名稱雖為 8B，模型卡標示約 8.5B；M3 Max 48GB 先沿用 float16 LoRA。
+# 此處只降低凍結權重的占用，不代表完整訓練的記憶體與數值穩定性已通過驗證。
+# Trainer 的混合精度旗標仍由 training_config.yaml 的 precision 控制。
+torch_dtype: float16
+
+attn_implementation: null
+low_cpu_mem_usage: true
+
+generation:
+  # 保留給後續推論流程；03_train_sft_lora.py 不使用這些生成參數計算 loss。
+  max_new_tokens: 512
+  temperature: 0.1
+  top_p: 0.9
+  do_sample: false
+
+task:
+  name: public_insult_prediction_and_generation
+  description: 公然侮辱判決結果預測與量刑理由生成

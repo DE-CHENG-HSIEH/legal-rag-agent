@@ -1,0 +1,6 @@
+{
+  // SFT 採 src layout；執行腳本會自行加入此路徑，Pylance 也需要相同的靜態分析來源。
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/sft/src"
+  ]
+}

@@ -1,0 +1,71 @@
+data:
+  train_file: data/sft/public_insult/train.jsonl
+  validation_file: data/sft/public_insult/validation.jsonl
+  test_file: data/sft/public_insult/test.jsonl
+  # 上限涵蓋 system、user、assistant 與模板特殊 token；超長樣本會在下載權重前報錯。
+  # 不自動截斷答案或略過資料，以保留完整的判決 JSON 與量刑理由。
+  max_seq_length: 1536
+
+output:
+  # --overwrite-output-dir 只允許清除標準 checkpoints／adapters 下的單次實驗目錄。
+  # dry-run 不寫入這些目錄，且不能與覆寫參數一起使用。
+  # 換 base model 必須隔離全部訓練成果，包含設定快照；不覆蓋先前模型的實驗。
+  checkpoint_dir: sft/outputs/checkpoints/public_insult_taide_llama31_8b_lora
+  adapter_dir: sft/outputs/adapters/public_insult_taide_llama31_8b_lora
+  log_dir: sft/outputs/logs/public_insult_taide_llama31_8b_lora
+
+training:
+  seed: 42
+  num_train_epochs: 3
+  max_steps: -1
+
+  # TAIDE Llama 3.1 約 8.5B，不能用小型隨機模型的測試推定實際記憶體需求。
+  # M3 Max 先用 per-device batch size 1，比較不容易遇到記憶體不足；
+  # 再用 gradient_accumulation_steps 維持有效 batch size。
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+
+  learning_rate: 0.0001
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  # 腳本會將比例轉換為安裝版本支援的 warmup 參數，避免新版套件靜默忽略。
+  lr_scheduler_type: cosine
+  max_grad_norm: 0.3
+
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 100
+  save_total_limit: 3
+
+  gradient_checkpointing: true
+  # 舊版使用 group_by_length；新版轉為 train_sampling_strategy="group_by_length"。
+  group_by_length: true
+  dataloader_num_workers: 0
+
+  # Trackio 是 Hugging Face 生態系的輕量實驗追蹤工具。
+  # 設成 trackio 後，Trainer 會自動記錄 training loss、eval loss、
+  # learning rate、epoch、global step 等指標。
+  # 若暫時不想追蹤，可改成 none。
+  report_to: trackio
+
+  # run_name 會出現在 Trackio dashboard，用來辨識單次訓練。
+  # 建議名稱包含任務、模型、訓練方法與關鍵超參數，方便之後比較多次實驗。
+  run_name: public-insult-taide-llama3_1-8b-lora-r16-lr1e-4
+
+  # project 用來把多個 run 歸在同一個 Trackio 專案底下。
+  # 保留同一個 project 以比較模型；以獨立 run_name 區分 TAIDE 與既有實驗。
+  project: legal-rag-agent-public-insult-sft
+
+  # 本機追蹤不需要設定 trackio_space_id。
+  # 若之後想把 dashboard 發到 Hugging Face Space，可填入 username/space_id。
+  trackio_space_id: null
+
+  # Mac MPS 目前不開 Trainer 的 bf16/fp16 混合精度旗標；
+  # 模型權重精度由 model_config.yaml 的 torch_dtype: float16 控制。
+  precision: auto
+
+  # 目前已有同一個 TAIDE base model 的 checkpoint。true 會讓 Trainer 從
+  # checkpoint_dir 自動選擇編號最大的 checkpoint，避免中斷後硬寫舊路徑。
+  # 若要開始全新實驗，改回 null，並使用新的輸出目錄或明確執行覆寫流程。
+  resume_from_checkpoint: true

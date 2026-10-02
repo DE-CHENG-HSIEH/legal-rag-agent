@@ -1,0 +1,43 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+data/vector_store/
+
+# Python test, analysis, coverage, and packaging artifacts.
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Private/local preparation datasets. The Judicial Yuan public runtime corpus
+# under data/public/ is intentionally version-controlled for reproducible demos.
+data/raw/judgments.csv
+data/rag/*.jsonl
+data/sft/
+sft/public_insult/*.jsonl
+
+# SFT outputs
+sft/outputs/checkpoints/
+sft/outputs/adapters/
+sft/outputs/merged_models/
+sft/outputs/logs/
+sft/outputs/predictions/
+sft/outputs/evaluations/
+
+# Large model files
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+
+# Local SFT cache
+.cache/

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software in research or technical work, please cite it using the metadata below."
+title: "公然侮辱案件研究與量刑輔助 Agent"
+type: software
+authors:
+  - family-names: "Hsieh"
+    given-names: "De-Cheng"
+repository-code: "https://github.com/DE-CHENG-HSIEH/legal-rag-agent"
+url: "https://github.com/DE-CHENG-HSIEH/legal-rag-agent"
+license: MIT
+abstract: >-
+  A research-oriented AI agent for Taiwanese public-insult cases, combining
+  similar-judgment retrieval, current-law lookup, legal-authority retrieval,
+  and TAIDE LoRA sentencing-group prediction.
+keywords:
+  - legal AI
+  - retrieval-augmented generation
+  - agent
+  - Taiwan law
+  - public insult

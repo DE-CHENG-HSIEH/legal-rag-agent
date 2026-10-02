@@ -1,0 +1,53 @@
+data:
+  train_file: data/sft/public_insult_ablation/variant_a/train.jsonl
+  validation_file: data/sft/public_insult_ablation/variant_a/validation.jsonl
+  test_file: data/sft/public_insult_ablation/variant_a/test.jsonl
+  # v2 保留完整案件、區間 JSON 與量刑理由；任何超長樣本由 dry-run 明確回報。
+  max_seq_length: 1536
+
+output:
+  checkpoint_dir: sft/outputs/checkpoints/public_insult_v2_ablation_a
+  adapter_dir: sft/outputs/adapters/public_insult_v2_ablation_a
+  log_dir: sft/outputs/logs/public_insult_v2_ablation_a
+
+training:
+  seed: 42
+  num_train_epochs: 3
+  max_steps: -1
+
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+
+  learning_rate: 0.0001
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  max_grad_norm: 0.3
+
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 100
+  save_total_limit: 3
+
+  gradient_checkpointing: true
+  # 自訂 sampler 已負責跨 epoch 的可重現輪替。MPS batch size 為 1，停用長度分組
+  # 不會增加 batch padding，並避免設定看似同時套用兩種互斥 sampler。
+  group_by_length: false
+  dataloader_num_workers: 0
+
+  class_balanced_sampling:
+    enabled: true
+    minority_label: 拘役
+    target_fraction: 0.40
+    seed: 42
+
+  report_to: trackio
+  run_name: public-insult-v2-ablation-a-band-balanced40
+  project: legal-rag-agent-public-insult-sft
+  trackio_space_id: null
+  precision: auto
+
+  # 消融實驗必須各自從相同 TAIDE base model 與相同 LoRA 初始化規則開始；
+  # 不可沿用舊精確刑度任務或其他 A/B/C 實驗的 checkpoint。
+  resume_from_checkpoint: null

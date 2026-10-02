@@ -1,0 +1,43 @@
+data:
+  train_file: data/sft/public_insult_ablation/variant_b/train.jsonl
+  validation_file: data/sft/public_insult_ablation/variant_b/validation.jsonl
+  test_file: data/sft/public_insult_ablation/variant_b/test.jsonl
+  max_seq_length: 1536
+
+output:
+  checkpoint_dir: sft/outputs/checkpoints/public_insult_v2_ablation_b
+  adapter_dir: sft/outputs/adapters/public_insult_v2_ablation_b
+  log_dir: sft/outputs/logs/public_insult_v2_ablation_b
+
+training:
+  seed: 42
+  num_train_epochs: 3
+  max_steps: -1
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 0.0001
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  max_grad_norm: 0.3
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 100
+  save_total_limit: 3
+  gradient_checkpointing: true
+  group_by_length: false
+  dataloader_num_workers: 0
+
+  class_balanced_sampling:
+    enabled: true
+    minority_label: 拘役
+    target_fraction: 0.40
+    seed: 42
+
+  report_to: trackio
+  run_name: public-insult-v2-ablation-b-court-year-band-balanced40
+  project: legal-rag-agent-public-insult-sft
+  trackio_space_id: null
+  precision: auto
+  resume_from_checkpoint: null

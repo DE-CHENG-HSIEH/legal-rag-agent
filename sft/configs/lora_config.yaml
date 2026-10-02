@@ -1,0 +1,26 @@
+# rank 決定 adapter 的容量與可訓練參數量；調高前先確認記憶體與驗證集表現。
+r: 16
+# 未啟用 rsLoRA 時，更新縮放比例為 alpha / r；本設定為 2。
+lora_alpha: 32
+# dropout 僅作用於 LoRA 分支，降低小型資料集過度擬合的風險。
+lora_dropout: 0.05
+bias: none
+task_type: CAUSAL_LM
+fan_in_fan_out: false
+
+# TAIDE Llama 3.1 沿用 Llama-family 的 attention / MLP projection 命名。
+# 這組 target modules 會讓 LoRA 同時覆蓋 attention 與 feed-forward 層。
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# 使用 TAIDE 原有詞彙表，不新增 token；embedding 與 lm_head 保持凍結，
+# 避免將大型詞彙矩陣變成可訓練參數，增加 M3 Max 的記憶體與 adapter 儲存負擔。
+modules_to_save: null
+
+inference_mode: false
