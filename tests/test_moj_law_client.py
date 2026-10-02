@@ -51,8 +51,13 @@ class MojLawClientTests(unittest.TestCase):
         response = MagicMock()
         response.text = """
         <html><body>
-          <div>第 309 條</div>
-          <p>公然侮辱人者，處拘役或九千元以下罰金。</p>
+          <div class="law-reg-content"><div class="row">
+            <div class="col-no">第 309 條</div>
+            <div class="col-data"><div class="law-article">
+              <div>合成法條第一項。</div><div>合成法條第二項。</div>
+            </div></div>
+          </div></div>
+          <a accesskey="Z">:::</a>
           <div>憲法法庭裁判（新制）</div>
           <p>這一段不是法條本文。</p>
         </body></html>
@@ -68,10 +73,26 @@ class MojLawClientTests(unittest.TestCase):
         self.assertEqual(record["article_no"], "309")
         self.assertEqual(
             record["article_content"],
-            "公然侮辱人者，處拘役或九千元以下罰金。",
+            "合成法條第一項。\n合成法條第二項。",
         )
         response.raise_for_status.assert_called_once_with()
         session.close.assert_called_once_with()
+
+    @patch("app.laws.moj_law_client.create_moj_session")
+    def test_missing_or_mismatched_article_container_does_not_quote_page_text(
+        self, create_session: MagicMock,
+    ) -> None:
+        session = create_session.return_value
+        html_cases = [
+            "<div>第 309 條</div><p>版面已改變，不能推測本文範圍。</p>",
+            '<div class="law-reg-content"><div class="row">'
+            '<div class="col-no">第 310 條</div><div class="col-data">'
+            '<div class="law-article">其他條文。</div></div></div></div>',
+        ]
+        for html in html_cases:
+            with self.subTest(html=html):
+                session.get.return_value.text = html
+                self.assertIsNone(fetch_criminal_law_article("刑法", "309"))
 
     @patch(
         "app.tools.criminal_law_lookup.fetch_criminal_law_article",

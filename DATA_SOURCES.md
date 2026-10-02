@@ -80,7 +80,9 @@ GitHub. On the first similar-judgment or legal-authority search, the application
 loads the embedding model and builds the required collection automatically.
 This can take several minutes depending on the machine; later searches reuse
 the local cache. A digest covering the source content, index schema, embedding
-model, and pinned revision rebuilds the collection when any input changes.
+model, and pinned revision is checked when each collection is first loaded in a
+process. Restart the application after changing source files or model settings;
+the next collection initialization rebuilds an outdated index.
 
 The indexes can also be prepared before opening the UI:
 
@@ -109,8 +111,9 @@ Judgments may later be corrected or withdrawn by the source. When a source
 decision is no longer public, the corresponding record should be removed from
 the public corpus. Add its `case_id` to
 `data/public/withdrawn_case_ids.txt`, rebuild the public artifact, and publish
-the resulting corpus change. The source-content hash causes each local Chroma
-index to rebuild automatically on its next use. Corrections or removal requests
+the resulting corpus change. After updating the corpus and restarting the
+application, the source-content hash causes each outdated local Chroma index to
+rebuild on its next initialization. Corrections or removal requests
 can be submitted through the repository issue tracker with the court and case
 number. Do not include additional personal data in the request.
 

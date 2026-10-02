@@ -271,33 +271,19 @@ def fetch_criminal_law_article(
         "html.parser",
     )
 
-    # 官方單一條文頁沒有穩定的資料 API；以可見文字定位條號，再在官方頁面
-    # 固定區段標記前停止。找不到明確條號時寧可回傳 None，不猜測法條內容。
-    page_texts = list(soup.stripped_strings)
-
-    article_heading = f"第 {normalized_article_no} 條"
-
-    try:
-        heading_index = page_texts.index(article_heading)
-
-    except ValueError:
-        return None
-
-    stop_markers = {
-        "憲法法庭裁判（新制）",
-        "大法官解釋（舊制）",
-        "最新訊息",
-    }
-
-    article_lines = []
-
-    for text in page_texts[heading_index + 1 :]:
-        if text in stop_markers:
-            break
-
-        article_lines.append(text)
-
-    article_content = "\n".join(article_lines).strip()
+    # Limit extraction to the requested article's DOM container. Scanning all
+    # following page text also captures footer access keys and related links.
+    article_content = ""
+    for row in soup.select(".law-reg-content .row"):
+        heading = row.select_one(".col-no")
+        body = row.select_one(".col-data .law-article")
+        if heading is None or body is None:
+            continue
+        heading_text = re.sub(r"\s+", "", heading.get_text())
+        if heading_text != f"第{normalized_article_no}條":
+            continue
+        article_content = body.get_text("\n", strip=True)
+        break
 
     if not article_content:
         return None

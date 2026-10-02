@@ -43,7 +43,11 @@ def parse_args() -> argparse.Namespace:
             "select multiple regression cases."
         ),
     )
-    parser.add_argument("--model", default="gpt-5.4-nano")
+    parser.add_argument(
+        "--model",
+        default=os.getenv("OPENAI_ROUTING_MODEL", "gpt-5.4-nano"),
+        help="Override OPENAI_ROUTING_MODEL for this evaluation run.",
+    )
     parser.add_argument("--experiment-prefix", default="legal-rag-agent")
     parser.add_argument(
         "--dry-run",
@@ -278,8 +282,8 @@ def invoke_agent(inputs: dict[str, Any], *, model_name: str) -> dict[str, Any]:
 
 
 def main() -> None:
-    args = parse_args()
     load_dotenv(PROJECT_ROOT / ".env")
+    args = parse_args()
     cases = load_cases(args.cases.resolve())
     selected_cases = select_cases(
         cases,

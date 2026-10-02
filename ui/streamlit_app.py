@@ -28,7 +28,6 @@ from app.agent.context import (
 from app.agent.legal_agent import (
     get_legal_agent,
 )
-from app.agent.schemas import normalize_markdown_text
 from app.agent.source_rendering import compose_final_answer
 from ui.agent_stream import (
     stream_in_background,
@@ -323,13 +322,20 @@ def initialize_session_state() -> None:
 
 
 def clear_conversation() -> None:
-    """清除 UI 與 checkpoint 對話；新 thread_id 防止舊狀態回流。"""
+    """清除 UI 對話並換用新 thread_id，避免沿用舊 checkpoint。"""
 
     st.session_state.thread_id = str(uuid4())
     st.session_state.chat_history = []
     st.session_state.agent_messages = []
     st.session_state.pop("prompt_draft", None)
     st.session_state.rebuild_agent_thread = False
+
+
+def reset_agent_thread() -> None:
+    """Resume from the last completed turn without reusing partial checkpoints."""
+
+    st.session_state.thread_id = str(uuid4())
+    st.session_state.rebuild_agent_thread = bool(st.session_state.agent_messages)
 
 
 @st.cache_data(show_spinner=False)
@@ -461,7 +467,9 @@ def render_chat_history() -> None:
                 st.markdown(content)
         elif role == "assistant":
             with st.chat_message("assistant", avatar=str(APP_ICON_PATH)):
-                st.markdown(normalize_markdown_text(content))
+                # The composed answer already contains normalized analysis and
+                # source artifacts. Re-normalizing would alter quoted source text.
+                st.markdown(content)
 
 
 def build_agent_config() -> dict:
@@ -523,8 +531,7 @@ if user_input:
         st.session_state.chat_history
         and st.session_state.chat_history[-1].get("role") == "user"
     ):
-        st.session_state.thread_id = str(uuid4())
-        st.session_state.rebuild_agent_thread = bool(st.session_state.agent_messages)
+        reset_agent_thread()
         st.session_state.chat_history.append(
             {
                 "role": "assistant",
@@ -609,13 +616,8 @@ if user_input:
             final_result = stream_state["final_result"]
             progress_box.empty()
             if final_result is None:
-                st.error("Agent 沒有回傳最終結果。")
+                raise RuntimeError("Agent 沒有回傳最終結果。")
             else:
-                st.session_state.agent_messages = final_result.get(
-                    "messages",
-                    [],
-                )
-                st.session_state.rebuild_agent_thread = False
                 answer = get_final_answer_from_result(final_result)
                 if not answer:
                     answer = "Agent 已完成處理，但沒有產生可顯示的回答。"
@@ -626,9 +628,14 @@ if user_input:
                         "content": answer,
                     }
                 )
+                st.session_state.agent_messages = final_result.get("messages", [])
+                st.session_state.rebuild_agent_thread = False
 
         except Exception:
             LOGGER.exception("Legal Agent execution failed")
+            # A failed stream can already have saved an AI tool call without its
+            # ToolMessage. Reusing that checkpoint would break the next request.
+            reset_agent_thread()
             st.error(ERROR_MESSAGE)
             # Persist an ordinary failure as an assistant turn. Otherwise the next
             # user message would be mistaken for recovery from a cancelled run.

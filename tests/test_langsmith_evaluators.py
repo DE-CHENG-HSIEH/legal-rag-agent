@@ -3,6 +3,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from evals.evaluators import (
     answer_contract_valid,
@@ -15,7 +16,7 @@ from evals.evaluators import (
     source_fidelity_valid,
     tool_call_limits_respected,
 )
-from evals.run_langsmith_evaluation import load_cases, select_cases
+from evals.run_langsmith_evaluation import load_cases, parse_args, select_cases
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +32,23 @@ def example(**outputs):
 
 
 class EvaluationCaseTests(unittest.TestCase):
+    def test_routing_model_uses_environment_unless_cli_overrides_it(self) -> None:
+        for environment, arguments, expected in (
+            ({}, [], "gpt-5.4-nano"),
+            ({"OPENAI_ROUTING_MODEL": "configured-model"}, [], "configured-model"),
+            (
+                {"OPENAI_ROUTING_MODEL": "configured-model"},
+                ["--model", "explicit-model"],
+                "explicit-model",
+            ),
+        ):
+            with self.subTest(environment=environment, arguments=arguments):
+                with (
+                    patch.dict("os.environ", environment, clear=True),
+                    patch("sys.argv", ["run_langsmith_evaluation.py", *arguments]),
+                ):
+                    self.assertEqual(parse_args().model, expected)
+
     def test_version_controlled_cases_are_valid_and_synthetic(self) -> None:
         cases = load_cases(CASES_PATH)
 

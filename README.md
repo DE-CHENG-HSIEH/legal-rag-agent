@@ -22,35 +22,13 @@
 
 ### 高階元件
 
-```mermaid
-flowchart TB
-    U[Streamlit 對話介面] --> A[LangChain Agent]
-    A --> J[相似判決檢索]
-    A --> L[現行法條查詢]
-    A --> R[重要法律見解檢索]
-    A --> P[TAIDE LoRA 預測]
-    J --> C[(本機 Chroma)]
-    R --> C
-    L --> MOJ[法務部全國法規資料庫]
-    P --> M[TAIDE 基礎模型]
-    P --> X[A / B / C adapter]
-```
+![高階元件：介面、Agent、四項工具與資料來源](docs/images/architecture.svg)
 
 ### 相似判決 RAG 流程
 
-```mermaid
-flowchart TB
-    Q[案件事實與量刑因素] --> E[BAAI/bge-m3 embedding]
-    D[2,154 筆公開判決 JSONL] --> E
-    E --> C[(本機 Chroma)]
-    C --> K[向量召回 Top 20 至 40]
-    K --> R[BAAI/bge-reranker-v2-m3]
-    R --> O[Top 1-10 原始犯罪事實與量刑段落]
-    O --> A[Agent 比較與整理]
-    O --> UI[UI 直接渲染原文]
-```
+![相似判決 RAG：建立索引、查詢向量、召回、重排與原文顯示](docs/images/judgment-rag.svg)
 
-`BAAI/bge-reranker-v2-m3` 透過 `FlagEmbedding` 套件載入；前者是模型名稱，後者是推論套件。Chroma 是可重建的本機快取，首次查詢會依公開判決資料建立索引。
+`BAAI/bge-reranker-v2-m3` 透過 `FlagEmbedding` 套件載入；前者是模型名稱，後者是推論套件。Chroma 是可重建的本機快取，首次查詢會依公開判決的客觀摘要建立索引；使用者查詢僅用於搜尋，不會寫入判決語料。原始犯罪事實、量刑段落與主文保留在 metadata，供工具回傳及 UI 顯示。
 
 ## Agent 工程設計
 
@@ -98,7 +76,7 @@ flowchart TB
 
 ### 中止執行
 
-停止按鈕透過背景非同步串流與 runtime `cancellation_event` 將中止訊號傳遞至 Agent 及 TAIDE 推論；被取消的執行不會寫入對話 checkpoint。
+停止按鈕透過背景非同步串流與 runtime `cancellation_event` 將中止訊號傳遞至 Agent 及 TAIDE 推論；取消訊號本身不會寫入 checkpoint。LangGraph 仍可能已保存該輪的部分步驟，因此中止或執行失敗後，UI 會換用新的 `thread_id`，由最後一次完整成功的對話重建上下文，避免沿用未完成的工具呼叫。已送出的網路請求、模型下載或同步檢索不保證立即停止；TAIDE 生成會在後續 token 邊界檢查取消訊號。
 
 核心實作可參考 [`app/agent/legal_agent.py`](app/agent/legal_agent.py)、[`app/agent/middleware.py`](app/agent/middleware.py)、[`app/agent/source_rendering.py`](app/agent/source_rendering.py) 與 [`ui/agent_stream.py`](ui/agent_stream.py)。
 
@@ -106,7 +84,7 @@ flowchart TB
 
 ### 環境需求
 
-- Git 與 Python。本專案目前在 macOS、Python 3.13 完成測試。
+- Git 與 Python 3.13。本專案在 macOS 完成本機測試，並在 GitHub Actions 的 Ubuntu 環境執行離線回歸測試。
 - 可使用預設模型或自訂模型名稱的 OpenAI API key。
 - 首次建立 RAG 索引時需要網路下載 BGE embedding 與 reranker 權重。
 - TAIDE 8B 僅在執行量刑預測時載入，需要較多記憶體；只使用判決檢索、法條及重要見解功能時不需要 TAIDE 權重或 Hugging Face token。
@@ -180,7 +158,7 @@ python scripts/ingest_authorities.py
 
 RAG 執行期語料為完整的 2,154 筆公開展示資料，保留原 SFT split 標籤以利追溯，但檢索展示會搜尋全部 split。TAIDE 的 validation／test 離線評估不呼叫 RAG，也不使用檢索結果，因此不得把 RAG 展示結果解讀為 TAIDE 的 out-of-sample 模型成績。
 
-BGE 模型固定至下列 Hugging Face commit；embedding 模型識別與 revision 也會納入 Chroma 索引指紋，模型或資料異動時會自動重建索引：
+BGE 模型固定至下列 Hugging Face commit；embedding 模型識別與 revision 也會納入 Chroma 索引指紋。更新模型設定或公開資料後，需重新啟動程序；下次首次使用對應 collection 時，系統會檢查指紋並重建過期索引：
 
 - `BAAI/bge-m3@5617a9f61b028005a4858fdac845db406aefb181`
 - `BAAI/bge-reranker-v2-m3@953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`
@@ -189,7 +167,7 @@ BGE 模型固定至下列 Hugging Face commit；embedding 模型識別與 revisi
 
 ## 測試
 
-GitHub Actions 會在 push 與 pull request 時執行核心測試、SFT pipeline 測試及 LangSmith 案例離線驗證。所有預設測試均使用合成資料或 mock，不下載 TAIDE 8B 權重。
+GitHub Actions 會在推送至 `main` 與 pull request 時執行核心測試、SFT pipeline 測試及 LangSmith 案例離線驗證。模型與網路呼叫使用 mock；資料完整性測試另會讀取儲存庫中的公開語料，不下載 TAIDE 8B 權重，也不消耗 OpenAI API 額度。
 
 執行 Agent 與資料處理測試：
 
@@ -209,6 +187,8 @@ python -B -m unittest discover -s sft/tests -v
 ## Agent 評估與追蹤
 
 LangSmith 是選用的開發工具，不是執行 Streamlit Agent 的必要條件。`evals/` 提供合成提示資料集與 deterministic code evaluators，用來檢查工具選擇、工具呼叫上限、相似判決筆數、A／B／C 路由、回答格式、風險聲明、來源分區及來源 artifact 完整性。
+
+評估預設沿用 `.env` 的 `OPENAI_ROUTING_MODEL`；可用 `--model` 覆寫該次評估的路由模型。整理與備援模型仍由 `OPENAI_SYNTHESIS_MODEL`、`OPENAI_FALLBACK_MODEL` 設定。
 
 ```bash
 python -m pip install -r requirements-eval.txt
@@ -230,7 +210,7 @@ python evals/run_langsmith_evaluation.py --split full \
   --case-id ten_similar_judgments
 ```
 
-`smoke` 只執行代表性案例；`full` 會執行全部案例，包含多次 RAG 與 TAIDE 推論，需要較多時間與 API 成本。評估腳本會在該程序內啟用 tracing；一般 Agent 預設關閉。LangSmith trace 會包含提示、工具參數、工具結果與模型回答，因此不得使用真實委任案件或其他非公開資料。線上追蹤必須由使用者明確將 `LANGSMITH_TRACING` 設為 `true` 才會啟用。
+`smoke` 只執行代表性案例；`full` 會執行全部案例，包含多次 RAG 與 TAIDE 推論，需要較多時間與 API 成本。執行線上評估即會由腳本在該程序內啟用 tracing；`--dry-run` 不連線，`--sync-only` 只同步案例。一般 Streamlit 使用預設不啟用 tracing，可透過 `LANGSMITH_TRACING=true` 開啟。LangSmith trace 會包含提示、工具參數、工具結果與模型回答，因此不得使用真實委任案件或其他非公開資料。
 
 ### 已驗證基準
 
@@ -250,12 +230,14 @@ python evals/run_langsmith_evaluation.py --split full \
 
 本輪 P50 延遲為 18.16 秒，範圍 3.99 至 199.19 秒；共使用 35,943 tokens，LangSmith 記錄的 OpenAI API 成本為 0.02750973 美元。最慢案例包含首次 TAIDE／RAG 模型與索引載入；延遲會隨硬體與快取狀態改變。測試提示皆為合成案件，但 trace 仍可能包含工具取回的司法院公開裁判文字。
 
+以上分數檢查的是工具路由與輸出契約；來源 artifact 完整性表示最終回答保留工具所提供的來源區塊，不代表已自動驗證法律解釋正確性、官方來源的即時有效性，或 TAIDE 量刑預測準確率。這些仍需獨立的來源核對與模型評估。
+
 ## 專案結構
 
 ```text
 app/        Agent、工具、RAG、法條查詢與 TAIDE 推論
 data/       可公開的執行期資料；向量索引在本機生成
-docs/       GitHub README 使用的介面截圖
+docs/       GitHub README 使用的介面截圖與同規格架構向量圖
 evals/      LangSmith 合成案例、工具路由與回答契約評估
 scripts/    資料建置、索引與人工檢查指令
 sft/        LoRA 訓練、A／B／C 消融實驗與離線評估
