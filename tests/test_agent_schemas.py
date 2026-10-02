@@ -48,20 +48,16 @@ class AgentSchemaTests(unittest.TestCase):
             "## AI 分析",
             SYSTEM_PROMPT,
         )
-        self.assertLess(
-            SYSTEM_PROMPT.index("## AI 比較"),
-            SYSTEM_PROMPT.index("## 法律來源原文"),
-        )
         self.assertIn(
-            "不得在原文之後再重複相同分析",
+            "不得在 answer_markdown 重貼判決原文",
             SYSTEM_PROMPT,
         )
         self.assertIn(
-            "必須先使用 `## AI 分析`",
+            "只使用 `## AI 分析`",
             SYSTEM_PROMPT,
         )
         self.assertIn(
-            "再使用 `## 法律來源原文`",
+            "應用程式會從工具 artifact 直接附加原文",
             SYSTEM_PROMPT,
         )
         self.assertIn(
@@ -69,12 +65,8 @@ class AgentSchemaTests(unittest.TestCase):
             SYSTEM_PROMPT,
         )
         self.assertIn(
-            "不得摘要、改寫、刪減或補充",
+            "法律來源原文由應用程式確定性附加",
             SYSTEM_PROMPT,
-        )
-        self.assertLess(
-            SYSTEM_PROMPT.index("`## 研究模型預測`"),
-            SYSTEM_PROMPT.rindex("`## 法律來源原文`"),
         )
 
     def test_authority_count_defaults_and_bounds(self) -> None:
@@ -233,6 +225,20 @@ class AgentSchemaTests(unittest.TestCase):
         decoded = CHECKPOINT_SERIALIZER.loads_typed(encoded)
 
         self.assertEqual(decoded, output)
+
+        tool_message = ToolMessage(
+            content="供模型分析的文字",
+            tool_call_id="call-source",
+            name="lookup_criminal_law_article",
+            artifact={
+                "artifact_type": "legal_sources_v1",
+                "entries": [{"title": "法條", "sections": []}],
+            },
+        )
+        encoded_message = CHECKPOINT_SERIALIZER.dumps_typed(tool_message)
+        decoded_message = CHECKPOINT_SERIALIZER.loads_typed(encoded_message)
+
+        self.assertEqual(decoded_message.artifact, tool_message.artifact)
 
     def test_literal_newlines_are_converted_to_markdown_lines(self) -> None:
         output = LegalAnalysisOutput(

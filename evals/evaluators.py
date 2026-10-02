@@ -240,6 +240,30 @@ def source_separation_present(run: Any, example: Any) -> dict[str, Any]:
     )
 
 
+def source_fidelity_valid(run: Any, example: Any) -> dict[str, Any]:
+    """Require the final answer to end with the deterministic source artifact."""
+
+    if not _expected(example).get("requires_source_separation", False):
+        return _not_applicable(
+            "source_fidelity_valid",
+            "case does not retrieve legal source text",
+        )
+
+    outputs = _outputs(run)
+    answer = str(outputs.get("answer", "")).strip()
+    source_markdown = str(outputs.get("source_markdown", "")).strip()
+    valid = bool(source_markdown) and answer.endswith(source_markdown)
+    return _score(
+        "source_fidelity_valid",
+        valid,
+        (
+            "answer contains the deterministic source artifact unchanged"
+            if valid
+            else "answer is missing the deterministic source artifact"
+        ),
+    )
+
+
 EVALUATORS = (
     expected_tools_called,
     forbidden_tools_absent,
@@ -249,4 +273,5 @@ EVALUATORS = (
     answer_contract_valid,
     risk_disclaimer_present,
     source_separation_present,
+    source_fidelity_valid,
 )

@@ -21,7 +21,10 @@ class LegalAnalysisOutput(BaseModel):
     """UI 唯一需要的 Agent 最終輸出契約。"""
 
     answer_markdown: str = Field(
-        description="給使用者閱讀的完整回答，可以使用 Markdown。"
+        description=(
+            "給使用者閱讀的 AI 分析，可以使用 Markdown；法律來源原文由應用程式"
+            "根據工具 artifact 另行附加，不得在此重貼。"
+        )
     )
 
     @field_validator("answer_markdown")

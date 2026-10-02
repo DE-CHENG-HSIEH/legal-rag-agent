@@ -5,10 +5,12 @@ from threading import Lock
 from typing import Optional
 
 from FlagEmbedding import FlagReranker
+from huggingface_hub import snapshot_download
 from langchain_core.documents import Document
 
 
 RERANKER_MODEL_NAME = "BAAI/bge-reranker-v2-m3"
+RERANKER_MODEL_REVISION = "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
 DEFAULT_RAG_DEVICE = "cpu"
 _reranker: Optional[FlagReranker] = None
 _reranker_lock = Lock()
@@ -24,8 +26,17 @@ def get_reranker() -> FlagReranker:
             if _reranker is None:
                 # CPU 上停用 fp16，避免未支援或精度不穩定；若切換至 GPU，
                 # 是否採半精度應再依目標硬體量測後調整。
+                # FlagEmbedding does not forward a Hub revision to Transformers,
+                # so resolve the immutable snapshot before constructing the model.
+                model_path = snapshot_download(
+                    repo_id=RERANKER_MODEL_NAME,
+                    revision=os.getenv(
+                        "BGE_RERANKER_MODEL_REVISION",
+                        RERANKER_MODEL_REVISION,
+                    ),
+                )
                 _reranker = FlagReranker(
-                    RERANKER_MODEL_NAME,
+                    model_path,
                     query_max_length=512,
                     passage_max_length=512,
                     use_fp16=False,

@@ -29,6 +29,7 @@ from app.agent.legal_agent import (
     get_legal_agent,
 )
 from app.agent.schemas import normalize_markdown_text
+from app.agent.source_rendering import compose_final_answer
 from ui.agent_stream import (
     stream_in_background,
 )
@@ -477,36 +478,12 @@ def build_agent_context(
     return LegalAgentContext(cancellation_event=cancellation_event)
 
 
-def get_answer_from_structured_response(
-    structured_response,
-) -> str | None:
-    """相容 Pydantic model 與序列化後 dict 兩種 structured response。"""
-
-    if structured_response is None:
-        return None
-    if hasattr(structured_response, "answer_markdown"):
-        return structured_response.answer_markdown
-    if isinstance(structured_response, dict):
-        return structured_response.get("answer_markdown")
-    return None
-
-
 def get_final_answer_from_result(
     result: dict,
 ) -> str:
-    """優先讀取 schema 驗證後的回答，必要時才退回最後一則訊息。"""
+    """Combine model analysis with source artifacts rendered by application code."""
 
-    structured_response = result.get("structured_response")
-    structured_answer = get_answer_from_structured_response(structured_response)
-    if structured_answer:
-        return normalize_markdown_text(structured_answer)
-
-    messages = result.get("messages", [])
-    if not messages:
-        return ""
-
-    final_message = messages[-1]
-    return normalize_markdown_text(getattr(final_message, "content", ""))
+    return compose_final_answer(result)
 
 
 def unpack_stream_event(

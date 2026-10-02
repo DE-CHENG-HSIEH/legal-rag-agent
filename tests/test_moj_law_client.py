@@ -108,7 +108,7 @@ class MojLawClientTests(unittest.TestCase):
         self,
         _fetch_article: MagicMock,
     ) -> None:
-        output = lookup_criminal_law_article.func(
+        output, artifact = lookup_criminal_law_article.func(
             law_name="刑法",
             article_no="355",
             runtime=MagicMock(),
@@ -119,6 +119,10 @@ class MojLawClientTests(unittest.TestCase):
         self.assertIn("【官方來源】", output)
         self.assertNotIn("不得由語言模型", output)
         self.assertNotIn("摘要、改寫、刪減或補充", output)
+        self.assertEqual(
+            artifact["entries"][0]["sections"][0]["text"],
+            "意圖損害他人，以詐術使本人交付財物者。",
+        )
 
 
 if __name__ == "__main__":

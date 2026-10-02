@@ -17,11 +17,18 @@ The decisions span ROC years 104–114. Source decisions were obtained from the
 The directory-level usage and attribution notice is available in
 [`data/public/README.md`](data/public/README.md).
 
-`data/public/public_insult_authorities.csv` contains 24 manually verified
+`data/public/public_insult_authorities.csv` contains 21 manually verified
 constitutional judgments, Supreme Court criminal judgments, and Judicial Yuan
 interpretations used by the legal-authority retrieval tool. Each row retains
 its citation, source type, original location, official URL, and verification
 status so the UI can keep source text separate from AI analysis.
+
+The public snapshot was finalized on **2026-10-02**. Release checksums are:
+
+| File | SHA-256 |
+| --- | --- |
+| `public_insult_judgments.jsonl` | `3b886dd61c43b3af0e2e7a2edb6204e753058b1a4458da438061f09c81d1457c` |
+| `public_insult_authorities.csv` | `d428434d940f7325fb7d8e86c59d7d825fdc6379c08e28a8e2ea08258505aa67` |
 
 ## Processing
 
@@ -39,8 +46,14 @@ not claim to reproduce a non-public case file. It republishes only the public
 judgment version present in the source snapshot and performs no additional
 paraphrasing or identity masking on that text.
 
-The retrieval summaries are used only for embedding and reranking. The UI shows
-the source-preserving crime-fact and sentencing paragraphs.
+The retrieval summaries are used only for embedding and reranking. Tools return
+the reviewed source fields as structured artifacts, and the UI renders those
+artifacts directly instead of asking a language model to reproduce the text.
+
+The runtime RAG demo searches all 2,154 published records, including records
+whose original SFT split labels are `train`, `validation`, or `test`. TAIDE
+validation and test evaluation does not call RAG or consume retrieval results;
+the RAG demo must not be presented as out-of-sample evidence for TAIDE.
 
 ## Live statute source
 
@@ -66,8 +79,8 @@ The Chroma vector database is a generated local cache and is not committed to
 GitHub. On the first similar-judgment or legal-authority search, the application
 loads the embedding model and builds the required collection automatically.
 This can take several minutes depending on the machine; later searches reuse
-the local cache. A source-content hash invalidates and rebuilds the collection
-when the version-controlled corpus changes.
+the local cache. A digest covering the source content, index schema, embedding
+model, and pinned revision rebuilds the collection when any input changes.
 
 The indexes can also be prepared before opening the UI:
 

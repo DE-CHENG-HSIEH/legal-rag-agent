@@ -24,7 +24,7 @@ from evals.evaluators import CORE_TOOLS, EVALUATORS
 
 DEFAULT_CASES_PATH = PROJECT_ROOT / "evals/agent_cases.jsonl"
 DEFAULT_DATASET_NAME = "legal-rag-agent-synthetic-v1"
-SUITE_VERSION = "1.2"
+SUITE_VERSION = "1.3"
 
 
 def parse_args() -> argparse.Namespace:
@@ -243,7 +243,7 @@ def invoke_agent(inputs: dict[str, Any], *, model_name: str) -> dict[str, Any]:
 
     from app.agent.context import LegalAgentContext
     from app.agent.legal_agent import get_legal_agent
-    from app.agent.schemas import normalize_markdown_text
+    from app.agent.source_rendering import compose_final_answer, render_legal_sources
 
     prompt = str(inputs.get("prompt", "")).strip()
     if not prompt:
@@ -254,13 +254,8 @@ def invoke_agent(inputs: dict[str, Any], *, model_name: str) -> dict[str, Any]:
         config={"configurable": {"thread_id": str(uuid4())}},
         context=LegalAgentContext(),
     )
-    structured = result.get("structured_response")
-    if hasattr(structured, "answer_markdown"):
-        answer = structured.answer_markdown
-    elif isinstance(structured, dict):
-        answer = structured.get("answer_markdown", "")
-    else:
-        answer = ""
+    answer = compose_final_answer(result)
+    source_markdown = render_legal_sources(result.get("messages", []))
 
     tool_calls: list[dict[str, Any]] = []
     for message in result.get("messages", []):
@@ -275,7 +270,8 @@ def invoke_agent(inputs: dict[str, Any], *, model_name: str) -> dict[str, Any]:
             )
 
     return {
-        "answer": normalize_markdown_text(answer),
+        "answer": answer,
+        "source_markdown": source_markdown,
         "tool_calls": tool_calls,
         "model": model_name,
     }

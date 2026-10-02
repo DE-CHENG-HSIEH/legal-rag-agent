@@ -46,6 +46,10 @@ def build_authority_document(
         "original_location": clean_text(row["原文位置"]),
         "source_url": clean_text(row["來源連結"]),
         "verification_status": clean_text(row["核對狀態"]),
+        # Keep the verified source passage separate from retrieval scaffolding so
+        # the UI can render exactly the reviewed text instead of model output.
+        "authority_text": authority_text,
+        "topic": topic,
     }
 
     return Document(

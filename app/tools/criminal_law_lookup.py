@@ -8,17 +8,18 @@ from langchain.tools import (
 from app.agent.context import (
     LegalAgentContext,
 )
+from app.agent.source_rendering import make_legal_source_artifact
 from app.laws.moj_law_client import (
     fetch_criminal_law_article,
 )
 
 
-@tool
+@tool(response_format="content_and_artifact")
 def lookup_criminal_law_article(
     law_name: str,
     article_no: str,
     runtime: ToolRuntime[LegalAgentContext],
-) -> str:
+) -> tuple[str, dict | None]:
     """
     即時查詢法務部全國法規資料庫中的臺灣核心刑事法條原文。
     """
@@ -32,18 +33,19 @@ def lookup_criminal_law_article(
         )
 
     except ValueError as error:
-        return str(error)
+        return str(error), None
 
     if record is None:
         return (
             "全國法規資料庫目前查無指定法條。\n"
             f"法規：{law_name}\n"
-            f"條號：{article_no}"
+            f"條號：{article_no}",
+            None,
         )
 
     runtime.stream_writer("刑事法條查詢完成。")
 
-    return f"""
+    content = f"""
 【刑事法條查詢結果】
 
 法規名稱：
@@ -61,3 +63,26 @@ def lookup_criminal_law_article(
 資料來源：
 法務部全國法規資料庫
 """.strip()
+
+    artifact = make_legal_source_artifact(
+        "statutes",
+        [
+            {
+                "title": "刑事法條查詢結果",
+                "metadata": [
+                    {"label": "法規名稱", "value": record["law_name"]},
+                    {"label": "條號", "value": f"第 {record['article_no']} 條"},
+                    {
+                        "label": "官方來源",
+                        "value": record["source_url"],
+                        "format": "url",
+                    },
+                    {"label": "資料來源", "value": "法務部全國法規資料庫"},
+                ],
+                "sections": [
+                    {"heading": "法條原文", "text": record["article_content"]},
+                ],
+            }
+        ],
+    )
+    return content, artifact

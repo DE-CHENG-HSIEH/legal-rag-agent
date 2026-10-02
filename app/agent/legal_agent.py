@@ -132,14 +132,15 @@ def get_legal_agent(
             _single_use_limit_middleware("search_similar_judgments"),
             _single_use_limit_middleware("search_public_insult_authorities"),
             _single_use_limit_middleware("predict_public_insult_sentence"),
-            # OpenAI 模型失敗時先重試，再切換到較高階的備援模型。
-            ModelRetryMiddleware(
-                max_retries=2,
-                backoff_factor=2.0,
-                initial_delay=1.0,
-            ),
+            # Fallback 位於 retry 外層：主要模型重試耗盡後才會切換模型。
             ModelFallbackMiddleware(
                 fallback_model,
+            ),
+            ModelRetryMiddleware(
+                max_retries=2,
+                on_failure="error",
+                backoff_factor=2.0,
+                initial_delay=1.0,
             ),
             # 將可預期的基礎設施錯誤轉成模型可安全說明的訊息。
             ToolErrorMiddleware(

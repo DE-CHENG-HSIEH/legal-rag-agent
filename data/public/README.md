@@ -9,7 +9,7 @@ generated vector database.
 
 - `public_insult_judgments.jsonl`: 2,154 public-insult judgments used for
   similar-judgment retrieval.
-- `public_insult_authorities.csv`: 24 manually verified constitutional
+- `public_insult_authorities.csv`: 21 manually verified constitutional
   judgments, Supreme Court criminal judgments, and Judicial Yuan
   interpretations.
 - `withdrawn_case_ids.txt`: case identifiers excluded after a source judgment
@@ -36,3 +36,6 @@ official publication of the Judicial Yuan, do not imply endorsement, and may
 not reflect later corrections or withdrawals. Users remain responsible for
 respecting applicable privacy, personal-data, and third-party-rights
 requirements.
+
+Snapshot date and SHA-256 checksums are recorded in
+[DATA_SOURCES.md](../../DATA_SOURCES.md).

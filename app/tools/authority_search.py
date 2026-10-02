@@ -10,6 +10,7 @@ from langchain.tools import (
 from app.agent.context import (
     LegalAgentContext,
 )
+from app.agent.source_rendering import make_legal_source_artifact
 from app.rag.authority_search import (
     search_authorities,
 )
@@ -36,7 +37,7 @@ def resolve_authority_count(
     return requested_count
 
 
-@tool
+@tool(response_format="content_and_artifact")
 def search_public_insult_authorities(
     query: str,
     runtime: ToolRuntime[LegalAgentContext],
@@ -44,7 +45,7 @@ def search_public_insult_authorities(
         int | None,
         "要求回傳的重要法律見解筆數，限 1 到 5；未指定時省略。",
     ] = None,
-) -> str:
+) -> tuple[str, dict | None]:
     """
     搜尋公然侮辱罪相關的重要判決、
     憲法裁判及重要法律見解。
@@ -61,7 +62,7 @@ def search_public_insult_authorities(
     )
 
     if not results:
-        return "目前沒有找到相關的重要法律見解。"
+        return "目前沒有找到相關的重要法律見解。", None
 
     runtime.stream_writer("重要法律見解搜尋與重排序完成。")
 
@@ -72,6 +73,7 @@ def search_public_insult_authorities(
             f"實際取得：{len(results)} 筆"
         )
     ]
+    source_entries = []
 
     for index, (
         document,
@@ -82,6 +84,9 @@ def search_public_insult_authorities(
         start=1,
     ):
         metadata = document.metadata
+        authority_text = str(
+            metadata.get("authority_text", document.page_content)
+        ).strip()
 
         result_text = f"""
 【重要法律見解 {index}】
@@ -98,7 +103,7 @@ def search_public_insult_authorities(
 【以下為資料庫所保存之重要法律見解原文，
 不得摘要、改寫、刪減或自行補充】
 
-{document.page_content}
+{authority_text}
 
 原文位置：
 {metadata.get("original_location", "未提供")}
@@ -112,4 +117,40 @@ def search_public_insult_authorities(
 
         output.append(result_text)
 
-    return "\n\n".join(output)
+        source_entries.append(
+            {
+                "title": f"重要法律見解 {index}",
+                "metadata": [
+                    {
+                        "label": "來源類型",
+                        "value": metadata.get("source_type", "未提供"),
+                    },
+                    {
+                        "label": "案號或解釋字號",
+                        "value": metadata.get("citation", "未提供"),
+                    },
+                    {"label": "日期", "value": metadata.get("date", "未提供")},
+                    {
+                        "label": "原文位置",
+                        "value": metadata.get("original_location", "未提供"),
+                    },
+                    {
+                        "label": "官方來源",
+                        "value": metadata.get("source_url", "未提供"),
+                        "format": "url",
+                    },
+                    {
+                        "label": "核對狀態",
+                        "value": metadata.get("verification_status", "未提供"),
+                    },
+                ],
+                "sections": [
+                    {"heading": "重要法律見解原文", "text": authority_text},
+                ],
+            }
+        )
+
+    return "\n\n".join(output), make_legal_source_artifact(
+        "legal_authorities",
+        source_entries,
+    )

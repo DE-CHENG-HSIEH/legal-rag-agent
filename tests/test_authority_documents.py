@@ -17,13 +17,17 @@ class AuthorityDocumentTests(unittest.TestCase):
 
         documents = load_authority_documents()
 
-        self.assertEqual(len(documents), 24)
+        self.assertEqual(len(documents), 21)
         for document in documents:
             self.assertIn("判決意旨原文：", document.page_content)
             self.assertTrue(document.metadata["source_id"])
             self.assertTrue(document.metadata["citation"])
             self.assertTrue(document.metadata["source_url"].startswith("https://"))
-            self.assertTrue(document.metadata["verification_status"])
+            self.assertEqual(
+                document.metadata["verification_status"],
+                "已核對官方原文",
+            )
+            self.assertTrue(document.metadata["authority_text"])
 
 
 if __name__ == "__main__":

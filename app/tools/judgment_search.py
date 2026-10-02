@@ -11,6 +11,7 @@ from langchain.tools import (
 from app.agent.context import (
     LegalAgentContext,
 )
+from app.agent.source_rendering import make_legal_source_artifact
 from app.rag.search import (
     retrieve_similar_judgments,
 )
@@ -60,7 +61,7 @@ def resolve_judgment_count(
     return requested_count
 
 
-@tool
+@tool(response_format="content_and_artifact")
 def search_similar_judgments(
     query: str,
     runtime: ToolRuntime[LegalAgentContext],
@@ -68,7 +69,7 @@ def search_similar_judgments(
         int | None,
         "使用者在提示中明確要求的回傳筆數，限 1 到 10；未指定時省略。",
     ] = None,
-) -> str:
+) -> tuple[str, dict | None]:
     """
     根據犯罪事實與量刑要素搜尋語意相似的公然侮辱判決。
     """
@@ -86,7 +87,7 @@ def search_similar_judgments(
     )
 
     if not results:
-        return "目前沒有找到可供參考的相似判決。"
+        return "目前沒有找到可供參考的相似判決。", None
 
     runtime.stream_writer("相似判決檢索與重排序完成。")
 
@@ -98,6 +99,7 @@ def search_similar_judgments(
             f"實際取得：{len(results)} 筆"
         )
     ]
+    source_entries = []
 
     for index, (
         document,
@@ -153,4 +155,33 @@ def search_similar_judgments(
 
         output.append(result_text)
 
-    return "\n\n".join(output)
+        source_entries.append(
+            {
+                "title": f"相似判決 {index}",
+                "metadata": [
+                    {"label": "裁判法院", "value": metadata.get("court", "未提供")},
+                    {"label": "裁判字號", "value": metadata.get("case_no", "未提供")},
+                    {"label": "裁判日期", "value": metadata.get("date", "未提供")},
+                    {"label": "裁判案由", "value": metadata.get("case_type", "未提供")},
+                    {"label": "承審法官", "value": metadata.get("judge", "未提供")},
+                    {
+                        "label": "處刑種類",
+                        "value": metadata.get("sentence_type", "未提供"),
+                    },
+                    {
+                        "label": "處刑輕重",
+                        "value": metadata.get("sentence_value", "未提供"),
+                    },
+                ],
+                "sections": [
+                    {"heading": "犯罪事實原文", "text": original_crime_facts},
+                    {"heading": "量刑段落原文", "text": original_sentencing},
+                    {"heading": "主文原文", "text": original_judgment},
+                ],
+            }
+        )
+
+    return "\n\n".join(output), make_legal_source_artifact(
+        "similar_judgments",
+        source_entries,
+    )

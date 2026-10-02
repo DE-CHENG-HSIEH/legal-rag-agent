@@ -70,9 +70,8 @@ adapter page and the TAIDE model page.
 
 ### Retrieval models
 
-- [`BAAI/bge-m3`](https://huggingface.co/BAAI/bge-m3): MIT License
-- [`BAAI/bge-reranker-v2-m3`](https://huggingface.co/BAAI/bge-reranker-v2-m3):
-  Apache License 2.0
+- [`BAAI/bge-m3`](https://huggingface.co/BAAI/bge-m3): MIT License; pinned to commit `5617a9f61b028005a4858fdac845db406aefb181`
+- [`BAAI/bge-reranker-v2-m3`](https://huggingface.co/BAAI/bge-reranker-v2-m3): Apache License 2.0; pinned to commit `953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`
 
 The weights are downloaded from Hugging Face on first use and are not committed
 to this repository.

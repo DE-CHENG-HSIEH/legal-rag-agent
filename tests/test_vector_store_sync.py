@@ -51,7 +51,7 @@ class VectorStoreSynchronizationTests(unittest.TestCase):
             source_path = root / "source.jsonl"
             digest_path = root / "source.sha256"
             source_path.write_text('{"version": 1}\n', encoding="utf-8")
-            vector_store = FakeVectorStore()
+            fake_store = FakeVectorStore()
             load_count = 0
 
             def load_documents() -> list[Document]:
@@ -65,23 +65,36 @@ class VectorStoreSynchronizationTests(unittest.TestCase):
                 return str(document.metadata["case_id"])
 
             first_rebuild = _synchronize_collection(
-                vector_store=vector_store,
+                vector_store=fake_store,
                 source_paths=(source_path,),
                 digest_path=digest_path,
                 load_documents=load_documents,
                 build_document_id=build_document_id,
             )
             second_rebuild = _synchronize_collection(
-                vector_store=vector_store,
+                vector_store=fake_store,
                 source_paths=(source_path,),
                 digest_path=digest_path,
                 load_documents=load_documents,
                 build_document_id=build_document_id,
             )
 
+            with patch.object(
+                vector_store,
+                "get_embedding_model_revision",
+                return_value="new-revision",
+            ):
+                model_rebuild = _synchronize_collection(
+                    vector_store=fake_store,
+                    source_paths=(source_path,),
+                    digest_path=digest_path,
+                    load_documents=load_documents,
+                    build_document_id=build_document_id,
+                )
+
             source_path.write_text('{"version": 2}\n', encoding="utf-8")
             stale_rebuild = _synchronize_collection(
-                vector_store=vector_store,
+                vector_store=fake_store,
                 source_paths=(source_path,),
                 digest_path=digest_path,
                 load_documents=load_documents,
@@ -90,11 +103,12 @@ class VectorStoreSynchronizationTests(unittest.TestCase):
 
         self.assertTrue(first_rebuild)
         self.assertFalse(second_rebuild)
+        self.assertTrue(model_rebuild)
         self.assertTrue(stale_rebuild)
-        self.assertEqual(load_count, 2)
-        self.assertEqual(vector_store.add_calls, 2)
-        self.assertEqual(vector_store.delete_calls, 1)
-        self.assertEqual(vector_store.ids, ["1"])
+        self.assertEqual(load_count, 3)
+        self.assertEqual(fake_store.add_calls, 3)
+        self.assertEqual(fake_store.delete_calls, 2)
+        self.assertEqual(fake_store.ids, ["1"])
 
     def test_parallel_first_use_serializes_chroma_clients(self) -> None:
         creation_counts: dict[str, int] = {}

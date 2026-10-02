@@ -16,10 +16,7 @@ from app.tools.judgment_search import (
 
 class JudgmentSearchTests(unittest.TestCase):
     def test_source_layout_joins_cjk_hard_wraps_only(self) -> None:
-        source = (
-            "因不\n滿店員不願販售香菸，辱罵告訴人等\n語。"
-            "\n\n第二段原文。"
-        )
+        source = "因不\n滿店員不願販售香菸，辱罵告訴人等\n語。" "\n\n第二段原文。"
 
         self.assertEqual(
             normalize_source_text_layout(source),
@@ -108,7 +105,7 @@ class JudgmentSearchTests(unittest.TestCase):
             stream_writer=Mock(),
         )
 
-        result = search_similar_judgments.func(
+        result, artifact = search_similar_judgments.func(
             query="公開辱罵告訴人",
             runtime=runtime,
             requested_count=1,
@@ -121,6 +118,11 @@ class JudgmentSearchTests(unittest.TestCase):
         self.assertIn("這是量刑段落原文。", result)
         self.assertNotIn("不\n應", result)
         self.assertNotIn("SFT 檢索用摘要", result)
+        self.assertEqual(artifact["artifact_type"], "legal_sources_v1")
+        self.assertEqual(
+            artifact["entries"][0]["sections"][0]["text"],
+            "這是不應斷開的犯罪事實原文。",
+        )
 
 
 if __name__ == "__main__":

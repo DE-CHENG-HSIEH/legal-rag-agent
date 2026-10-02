@@ -12,6 +12,7 @@ from evals.evaluators import (
     requested_count_matches,
     risk_disclaimer_present,
     source_separation_present,
+    source_fidelity_valid,
     tool_call_limits_respected,
 )
 from evals.run_langsmith_evaluation import load_cases, select_cases
@@ -198,6 +199,25 @@ class AnswerEvaluatorTests(unittest.TestCase):
             ],
             1,
         )
+
+    def test_source_fidelity_requires_deterministic_artifact_at_end(self) -> None:
+        source = "## 法律來源原文\n\n### 刑事法條查詢結果\n\n法條原文"
+        matching = SimpleNamespace(
+            outputs={
+                "answer": f"## AI 分析\n分析內容\n\n{source}",
+                "source_markdown": source,
+            }
+        )
+        modified = SimpleNamespace(
+            outputs={
+                "answer": "## AI 分析\n分析內容\n\n## 法律來源原文\n改寫內容",
+                "source_markdown": source,
+            }
+        )
+        reference = example(requires_source_separation=True)
+
+        self.assertEqual(source_fidelity_valid(matching, reference)["score"], 1)
+        self.assertEqual(source_fidelity_valid(modified, reference)["score"], 0)
 
 
 if __name__ == "__main__":

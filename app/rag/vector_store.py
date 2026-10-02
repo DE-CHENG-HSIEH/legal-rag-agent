@@ -16,7 +16,11 @@ from app.rag.authority_documents import (
     load_authority_documents,
 )
 from app.rag.documents import JUDGMENTS_JSONL_PATH, load_judgment_documents
-from app.rag.embeddings import get_embedding_model
+from app.rag.embeddings import (
+    EMBEDDING_MODEL_NAME,
+    get_embedding_model,
+    get_embedding_model_revision,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -24,7 +28,7 @@ VECTOR_STORE_DIRECTORY = PROJECT_ROOT / "data/vector_store"
 
 JUDGMENT_COLLECTION_NAME = "public_insult_sft_judgments_v1"
 AUTHORITY_COLLECTION_NAME = "public_insult_authorities"
-INDEX_SCHEMA_VERSION = "2"
+INDEX_SCHEMA_VERSION = "3"
 INDEX_BATCH_SIZE = 128
 
 _INDEX_LOCK = Lock()
@@ -37,6 +41,8 @@ def _source_digest(source_paths: tuple[Path, ...]) -> str:
     """Hash source content and index schema so stale local indexes are rebuilt."""
 
     digest = hashlib.sha256(INDEX_SCHEMA_VERSION.encode("utf-8"))
+    model_identity = f"{EMBEDDING_MODEL_NAME}@{get_embedding_model_revision()}"
+    digest.update(model_identity.encode("utf-8"))
     for path in source_paths:
         if not path.is_file():
             raise FileNotFoundError(

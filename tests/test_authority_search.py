@@ -1,11 +1,13 @@
 """重要法律見解檢索的來源多樣化測試。"""
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from langchain_core.documents import Document
 
 from app.rag.authority_search import search_authorities
+from app.tools.authority_search import search_public_insult_authorities
 
 
 def authority(source_id: str, citation: str) -> Document:
@@ -53,6 +55,43 @@ class AuthoritySearchTests(unittest.TestCase):
             query="言論自由與名譽權",
             docs_with_scores=vector_store.similarity_search_with_score.return_value,
             top_n=12,
+        )
+
+    @patch("app.tools.authority_search.search_authorities")
+    def test_tool_returns_verified_text_as_source_artifact(
+        self,
+        search_mock: Mock,
+    ) -> None:
+        search_mock.return_value = [
+            (
+                Document(
+                    page_content="檢索內容",
+                    metadata={
+                        "source_type": "憲法法庭判決",
+                        "citation": "113年憲判字第3號",
+                        "date": "2024-04-26",
+                        "original_location": "理由第55段",
+                        "source_url": "https://cons.judicial.gov.tw/example",
+                        "verification_status": "已核對官方原文",
+                        "authority_text": "這是已核對的官方原文。",
+                    },
+                ),
+                0.1,
+                0.9,
+            )
+        ]
+        runtime = SimpleNamespace(stream_writer=Mock())
+
+        content, artifact = search_public_insult_authorities.func(
+            query="公然侮辱與言論自由",
+            runtime=runtime,
+            requested_count=1,
+        )
+
+        self.assertIn("這是已核對的官方原文。", content)
+        self.assertEqual(
+            artifact["entries"][0]["sections"][0]["text"],
+            "這是已核對的官方原文。",
         )
 
 
