@@ -24,11 +24,17 @@
 
 ![高階元件：介面、Agent、四項工具與資料來源](docs/images/architecture.svg)
 
+箭頭表示元件的呼叫或使用關係，省略結果回傳路徑。判決與重要法律見解使用同一本機 Chroma 的不同 collection，分別為 `public_insult_sft_judgments_v1` 與 `public_insult_authorities`。TAIDE 共用一個基礎模型，每次預測只啟用 A／B／C 其中一組 adapter，不會同時以三組產生預測。
+
 ### 相似判決 RAG 流程
 
 ![相似判決 RAG：建立索引、查詢向量、召回、重排與原文顯示](docs/images/judgment-rag.svg)
 
-`BAAI/bge-reranker-v2-m3` 透過 `FlagEmbedding` 套件載入；前者是模型名稱，後者是推論套件。Chroma 是可重建的本機快取，首次查詢會依公開判決的客觀摘要建立索引；使用者查詢僅用於搜尋，不會寫入判決語料。原始犯罪事實、量刑段落與主文保留在 metadata，供工具回傳及 UI 顯示。
+`BAAI/bge-reranker-v2-m3` 透過 `FlagEmbedding` 套件載入；前者是模型名稱，後者是推論套件。Reranker 的輸入是「查詢原文＋候選判決的客觀摘要」，不是查詢向量。候選筆數為 `max(20, 回傳筆數 × 4)`，再保留使用者指定的 1～10 筆，未指定時預設 5 筆。
+
+Chroma 是可重建的本機快取，首次查詢會依公開判決的客觀摘要建立索引；使用者查詢僅用於搜尋，不會寫入判決語料。犯罪事實原文、量刑段落原文與主文另存於 metadata，不參與 embedding 或 reranking；它們會隨候選文件回傳，重排後直接讀取，不會再次連線抓取判決。工具回傳的文字供 Agent 比較與整理，原文 artifact 則由 UI 直接渲染。
+
+圖中的「客觀摘要」是公開資料集既有的檢索欄位，不是執行時產生的對話摘要；本專案目前未使用 `SummarizationMiddleware`。
 
 ## Agent 工程設計
 

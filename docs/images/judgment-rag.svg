@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="680" viewBox="0 0 1040 680" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="728" viewBox="0 0 1040 728" role="img" aria-labelledby="title desc">
   <title id="title">相似判決 RAG 流程</title>
-  <desc id="desc">公開判決的客觀摘要經 BGE-M3 建立 Chroma 索引。使用者查詢經 BGE-M3 轉成向量，召回 20 至 40 筆候選，以 BGE reranker 重排後取回 1 至 10 筆判決原文，分別交由 Agent 比較與 UI 顯示。</desc>
+  <desc id="desc">公開判決的客觀摘要經 BGE-M3 建立 Chroma 索引；原文另存入 metadata，不做向量化。查詢經 BGE-M3 轉成向量，召回 20 至 40 筆候選。BGE reranker 同時讀取查詢原文與候選摘要，重排後選取 1 至 10 筆，再讀取結果文件隨附的原文 metadata，分別交由 Agent 比較與 UI 顯示，不再上網抓取判決。</desc>
   <!-- Match architecture.svg: 1040px canvas, 20px labels, 220x64 nodes. -->
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -12,14 +12,16 @@
       text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', 'PingFang TC', sans-serif; font-size: 20px; fill: #24292f; text-anchor: middle; }
     </style>
   </defs>
-  <path fill="#fff" d="M0 0h1040v680H0z"/>
+  <path fill="#fff" d="M0 0h1040v728H0z"/>
   <g class="edge">
     <path d="M260 88V136"/>
     <path d="M780 88V136"/>
+    <path d="M670 56H610V228H710V248" stroke-dasharray="6 4"/>
     <path d="M260 200V248"/>
     <path d="M780 200V248"/>
     <path d="M670 280H370"/>
     <path d="M260 312V336H520V360"/>
+    <path d="M150 56H64V392H410"/>
     <path d="M520 424V472"/>
     <path d="M520 536V560H260V584"/>
     <path d="M520 536V560H780V584"/>
@@ -37,13 +39,17 @@
     <rect x="670" y="584" width="220" height="64" rx="6"/>
   </g>
   <text x="260" y="64">案件事實與量刑因素</text>
-  <text x="780" y="50">2,154 筆公開判決<tspan x="780" dy="26">JSONL 客觀摘要</tspan></text>
+  <text x="780" y="50">2,154 筆公開判決<tspan x="780" dy="26">客觀摘要與原文</tspan></text>
   <text x="260" y="162">BAAI/bge-m3<tspan x="260" dy="26">查詢向量</tspan></text>
   <text x="780" y="162">BAAI/bge-m3<tspan x="780" dy="26">摘要向量</tspan></text>
   <text x="260" y="274">向量召回候選<tspan x="260" dy="26">Top 20 至 40</tspan></text>
-  <text x="780" y="288">本機 Chroma</text>
+  <text x="780" y="274">本機 Chroma<tspan x="780" dy="26">判決 collection</tspan></text>
+  <text x="510" y="180">原文 metadata<tspan x="510" dy="26">不做向量化</tspan></text>
+  <text x="215" y="381">查詢原文</text>
+  <text x="430" y="325">候選摘要</text>
   <text x="520" y="386">BGE reranker 重排<tspan x="520" dy="26">bge-reranker-v2-m3</tspan></text>
-  <text x="520" y="498">取回 Top 1 至 10 筆<tspan x="520" dy="26">犯罪事實、量刑及主文</tspan></text>
+  <text x="520" y="498">選取 Top 1 至 10 筆<tspan x="520" dy="26">讀取原文 metadata</tspan></text>
   <text x="260" y="624">Agent 比較與整理</text>
   <text x="780" y="624">UI 直接渲染原文</text>
+  <text x="520" y="706">原文隨結果文件回傳，不再上網抓取判決</text>
 </svg>
