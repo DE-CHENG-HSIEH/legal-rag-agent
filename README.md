@@ -259,6 +259,17 @@ ui/         Streamlit 介面與背景串流控制
 - 執行 TAIDE 8B 需要足夠記憶體，CPU 推論可能較慢；OpenAI、Hugging Face 與官方法規網站也需要網路連線。
 - `InMemorySaver` 適合本機展示，不提供跨程序持久化；長時間運作的共享服務應改用具保留與清除政策的持久化 checkpointer。
 
+## 聯絡方式
+
+若對本專案有問題、建議，或希望交流研究與合作，歡迎聯絡：
+
+- **De-Cheng Hsieh**
+- Email：[a97141481@gmail.com](mailto:a97141481@gmail.com)
+- GitHub：[DE-CHENG-HSIEH](https://github.com/DE-CHENG-HSIEH)
+- Hugging Face：[a97141481](https://huggingface.co/a97141481)
+
+可公開討論的錯誤回報與功能建議，也可透過本儲存庫的 [GitHub Issues](https://github.com/DE-CHENG-HSIEH/legal-rag-agent/issues) 提出。
+
 ## 授權與來源
 
 本專案由 [De-Cheng Hsieh](https://github.com/DE-CHENG-HSIEH) 自行開發的程式碼、專案文件與專案自有 UI 素材採 [MIT License](LICENSE)。研究或技術文件若需引用本專案，可使用 [`CITATION.cff`](CITATION.cff) 提供的資訊。
